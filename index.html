@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>학생 카드 메이커 프로토타입</title>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Pretendard", "Noto Sans KR", sans-serif;
+      background: #f3f4f6;
+      color: #222;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      min-height: 100vh;
+    }
+
+    .editor {
+      background: #ffffff;
+      border-right: 1px solid #ddd;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .editor h1 {
+      margin-top: 0;
+      font-size: 22px;
+    }
+
+    .editor h2 {
+      margin-top: 28px;
+      margin-bottom: 12px;
+      font-size: 16px;
+      border-left: 4px solid #3b82f6;
+      padding-left: 8px;
+    }
+
+    .field {
+      margin-bottom: 12px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    .field input,
+    .field textarea,
+    .field select,
+    .field button {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+
+    .field textarea {
+      resize: vertical;
+      min-height: 90px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .row-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+
+    .preview-wrap {
+      padding: 24px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      overflow: auto;
+    }
+
+    .preview-area {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .preview-toolbar {
+      width: min(920px, 100%);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .preview-toolbar button {
+      border: none;
+      background: #2563eb;
+      color: white;
+      padding: 12px 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .preview-toolbar button:hover {
+      background: #1d4ed8;
+    }
+
+    .card {
+      width: 900px;
+      min-height: 560px;
+      background: #fffdf7;
+      border: 3px solid #222;
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 12px 35px rgba(0,0,0,0.08);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-inner {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 20px;
+    }
+
+    .left-col {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .photo-frame {
+      width: 100%;
+      height: 300px;
+      border: 3px solid #222;
+      border-radius: 18px;
+      background: #f1f5f9;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .photo-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #6b7280;
+      font-size: 24px;
+      pointer-events: none;
+    }
+
+    .photo-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      user-select: none;
+      cursor: grab;
+      transform-origin: top left;
+      display: none;
+    }
+
+    .photo-image.dragging {
+      cursor: grabbing;
+    }
+
+    .student-meta {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      text-align: center;
+    }
+
+    .meta-box {
+      border: 2px solid #222;
+      border-radius: 12px;
+      padding: 10px 8px;
+      background: rgba(255,255,255,0.5);
+    }
+
+    .meta-label {
+      display: block;
+      font-size: 12px;
+      color: #555;
+      margin-bottom: 4px;
+    }
+
+    .meta-value {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .basic-info {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .label-col {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-weight: 700;
+      padding-top: 4px;
+    }
+
+    .value-col {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .info-box {
+      min-height: 42px;
+      border: 2px solid #222;
+      border-radius: 12px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      background: rgba(255,255,255,0.5);
+    }
+
+    .rating-row {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .rating-stars {
+      font-size: 28px;
+      letter-spacing: 3px;
+      color: #f59e0b;
+      font-weight: 700;
+    }
+
+    .feature-box {
+      margin-top: 10px;
+      border: 3px solid #222;
+      border-radius: 18px;
+      min-height: 210px;
+      padding: 18px;
+      background: rgba(255,255,255,0.35);
+    }
+
+    .feature-title {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .feature-text {
+      white-space: pre-wrap;
+      line-height: 1.7;
+      font-size: 18px;
+      min-height: 130px;
+    }
+
+    .top-badge {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      font-size: 14px;
+      padding: 6px 12px;
+      border: 2px solid #222;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.8);
+      font-weight: 700;
+    }
+
+    .small-note {
+      margin-top: 4px;
+      color: #666;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1200px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .editor {
+        border-right: none;
+        border-bottom: 1px solid #ddd;
+      }
+
+      .card {
+        width: 100%;
+        min-width: 820px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="editor">
+      <h1>학생 카드 메이커</h1>
+      <div class="small-note">
+        시험용 프로토타입입니다.  
+        사진 업로드, 글자 수정, 별점 조절, PNG 저장 기능이 포함되어 있습니다.
+      </div>
+
+      <h2>기본 정보</h2>
+      <div class="field">
+        <label for="nameInput">이름</label>
+        <input id="nameInput" type="text" value="홍길동" />
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="ageInput">나이</label>
+          <input id="ageInput" type="text" value="17" />
+        </div>
+        <div class="field">
+          <label for="schoolInput">학교</label>
+          <input id="schoolInput" type="text" value="오픈AI고등학교" />
+        </div>
+      </div>
+
+      <div class="row-3">
+        <div class="field">
+          <label for="gradeInput">학년</label>
+          <input id="gradeInput" type="text" value="2" />
+        </div>
+        <div class="field">
+          <label for="classInput">반</label>
+          <input id="classInput" type="text" value="3" />
+        </div>
+        <div class="field">
+          <label for="numberInput">번호</label>
+          <input id="numberInput" type="text" value="12" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="gradeScoreInput">성적</label>
+        <select id="gradeScoreInput">
+          <option>A+</option>
+          <option>A</option>
+          <option>B+</option>
+          <option>B</option>
+          <option>C+</option>
+          <option>C</option>
+        </select>
+      </div>
+
+      <h2>평가 항목</h2>
+      <div class="field">
+        <label for="recordInput">벌점기록 별점</label>
+        <input id="recordInput" type="range" min="0" max="5" value="4" />
+      </div>
+
+      <div class="field">
+        <label for="sincerityInput">성실도 별점</label>
+        <input id="sincerityInput" type="range" min="0" max="5" value="5" />
+      </div>
+
+      <h2>특징</h2>
+      <div class="field">
+        <label for="featureInput">특징 / 한줄 소개</label>
+        <textarea id="featureInput">책임감이 강하고 맡은 일을 끝까지 해내는 학생입니다.
+친구들과 협업도 잘하며 발표에도 적극적입니다.</textarea>
+      </div>
+
+      <h2>사진</h2>
+      <div class="field">
+        <label for="photoInput">사진 업로드</label>
+        <input id="photoInput" type="file" accept="image/*" />
+      </div>
+
+      <div class="field">
+        <label for="photoScale">사진 크기</label>
+        <input id="photoScale" type="range" min="40" max="220" value="100" />
+      </div>
+
+      <div class="field">
+        <label for="photoX">사진 좌우 위치</label>
+        <input id="photoX" type="range" min="-200" max="200" value="0" />
+      </div>
+
+      <div class="field">
+        <label for="photoY">사진 상하 위치</label>
+        <input id="photoY" type="range" min="-200" max="200" value="0" />
+      </div>
+
+      <h2>스타일</h2>
+      <div class="field">
+        <label for="fontFamily">폰트</label>
+        <select id="fontFamily">
+          <option value="'Pretendard', 'Noto Sans KR', sans-serif">기본 고딕</option>
+          <option value="'Malgun Gothic', sans-serif">맑은 고딕</option>
+          <option value="'Apple SD Gothic Neo', sans-serif">애플 고딕</option>
+          <option value="'Courier New', monospace">타자기 느낌</option>
+          <option value="'Georgia', serif">세리프</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="fontSize">기본 글자 크기</label>
+          <input id="fontSize" type="range" min="14" max="26" value="18" />
+        </div>
+        <div class="field">
+          <label for="nameSize">이름 글자 크기</label>
+          <input id="nameSize" type="range" min="18" max="42" value="28" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="fontColor">글자색</label>
+          <input id="fontColor" type="color" value="#222222" />
+        </div>
+        <div class="field">
+          <label for="bgColor">카드 배경색</label>
+          <input id="bgColor" type="color" value="#fffdf7" />
+        </div>
+      </div>
+    </aside>
+
+    <main class="preview-wrap">
+      <div class="preview-area">
+        <div class="preview-toolbar">
+          <button id="downloadBtn">PNG 저장</button>
+        </div>
+
+        <section id="captureCard" class="card">
+          <div class="top-badge">STUDENT PROFILE CARD</div>
+
+          <div class="card-inner">
+            <div class="left-col">
+              <div class="photo-frame" id="photoFrame">
+                <div class="photo-placeholder" id="photoPlaceholder">사진</div>
+                <img id="photoImage" class="photo-image" alt="업로드 이미지" />
+              </div>
+
+              <div class="student-meta">
+                <div class="meta-box">
+                  <span class="meta-label">학년</span>
+                  <span class="meta-value" id="gradePreview">2</span>
+                </div>
+                <div class="meta-box">
+                  <span class="meta-label">반</span>
+                  <span class="meta-value" id="classPreview">3</span>
+                </div>
+                <div class="meta-box">
+                  <span class="meta-label">번호</span>
+                  <span class="meta-value" id="numberPreview">12</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="right-col">
+              <div class="basic-info">
+                <div class="label-col">
+                  <div>이름</div>
+                  <div>나이</div>
+                  <div>학교</div>
+                </div>
+                <div class="value-col">
+                  <div class="info-box"><span id="namePreview" style="font-size:28px; font-weight:800;">홍길동</span></div>
+                  <div class="info-box"><span id="agePreview">17</span></div>
+                  <div class="info-box"><span id="schoolPreview">오픈AI고등학교</span></div>
+                </div>
+              </div>
+
+              <div class="rating-row">
+                <div style="font-weight:700;">벌점기록</div>
+                <div class="rating-stars" id="recordPreview">★★★★☆</div>
+              </div>
+
+              <div class="rating-row">
+                <div style="font-weight:700;">성실도</div>
+                <div class="rating-stars" id="sincerityPreview">★★★★★</div>
+              </div>
+
+              <div class="rating-row">
+                <div style="font-weight:700;">성적</div>
+                <div class="info-box" style="max-width:220px;">
+                  <span id="gradeScorePreview">A+</span>
+                </div>
+              </div>
+
+              <div class="feature-box">
+                <div class="feature-title">특징</div>
+                <div class="feature-text" id="featurePreview">
+책임감이 강하고 맡은 일을 끝까지 해내는 학생입니다.
+친구들과 협업도 잘하며 발표에도 적극적입니다.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const els = {
+      nameInput: document.getElementById("nameInput"),
+      ageInput: document.getElementById("ageInput"),
+      schoolInput: document.getElementById("schoolInput"),
+      gradeInput: document.getElementById("gradeInput"),
+      classInput: document.getElementById("classInput"),
+      numberInput: document.getElementById("numberInput"),
+      gradeScoreInput: document.getElementById("gradeScoreInput"),
+      recordInput: document.getElementById("recordInput"),
+      sincerityInput: document.getElementById("sincerityInput"),
+      featureInput: document.getElementById("featureInput"),
+      photoInput: document.getElementById("photoInput"),
+      photoScale: document.getElementById("photoScale"),
+      photoX: document.getElementById("photoX"),
+      photoY: document.getElementById("photoY"),
+      fontFamily: document.getElementById("fontFamily"),
+      fontSize: document.getElementById("fontSize"),
+      nameSize: document.getElementById("nameSize"),
+      fontColor: document.getElementById("fontColor"),
+      bgColor: document.getElementById("bgColor"),
+
+      namePreview: document.getElementById("namePreview"),
+      agePreview: document.getElementById("agePreview"),
+      schoolPreview: document.getElementById("schoolPreview"),
+      gradePreview: document.getElementById("gradePreview"),
+      classPreview: document.getElementById("classPreview"),
+      numberPreview: document.getElementById("numberPreview"),
+      gradeScorePreview: document.getElementById("gradeScorePreview"),
+      recordPreview: document.getElementById("recordPreview"),
+      sincerityPreview: document.getElementById("sincerityPreview"),
+      featurePreview: document.getElementById("featurePreview"),
+
+      captureCard: document.getElementById("captureCard"),
+      photoImage: document.getElementById("photoImage"),
+      photoPlaceholder: document.getElementById("photoPlaceholder"),
+      photoFrame: document.getElementById("photoFrame"),
+      downloadBtn: document.getElementById("downloadBtn")
+    };
+
+    const photoState = {
+      x: 0,
+      y: 0,
+      scale: 1,
+      dragging: false,
+      startX: 0,
+      startY: 0,
+      initialX: 0,
+      initialY: 0
+    };
+
+    function makeStars(value) {
+      const num = Number(value);
+      return "★".repeat(num) + "☆".repeat(5 - num);
+    }
+
+    function updatePhotoTransform() {
+      photoState.scale = Number(els.photoScale.value) / 100;
+      photoState.x = Number(els.photoX.value);
+      photoState.y = Number(els.photoY.value);
+
+      els.photoImage.style.transform =
+        `translate(${photoState.x}px, ${photoState.y}px) scale(${photoState.scale})`;
+    }
+
+    function updateCard() {
+      els.namePreview.textContent = els.nameInput.value || "이름";
+      els.agePreview.textContent = els.ageInput.value || "-";
+      els.schoolPreview.textContent = els.schoolInput.value || "-";
+      els.gradePreview.textContent = els.gradeInput.value || "-";
+      els.classPreview.textContent = els.classInput.value || "-";
+      els.numberPreview.textContent = els.numberInput.value || "-";
+      els.gradeScorePreview.textContent = els.gradeScoreInput.value || "-";
+      els.recordPreview.textContent = makeStars(els.recordInput.value);
+      els.sincerityPreview.textContent = makeStars(els.sincerityInput.value);
+      els.featurePreview.textContent = els.featureInput.value || "특징을 입력하세요.";
+
+      els.captureCard.style.fontFamily = els.fontFamily.value;
+      els.captureCard.style.color = els.fontColor.value;
+      els.captureCard.style.background = els.bgColor.value;
+
+      els.featurePreview.style.fontSize = `${els.fontSize.value}px`;
+      els.agePreview.style.fontSize = `${els.fontSize.value}px`;
+      els.schoolPreview.style.fontSize = `${els.fontSize.value}px`;
+      els.gradeScorePreview.style.fontSize = `${els.fontSize.value}px`;
+
+      els.namePreview.style.fontSize = `${els.nameSize.value}px`;
+
+      updatePhotoTransform();
+    }
+
+    function readImage(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        els.photoImage.src = e.target.result;
+        els.photoImage.style.display = "block";
+        els.photoPlaceholder.style.display = "none";
+      };
+      reader.readAsDataURL(file);
+    }
+
+    [
+      els.nameInput,
+      els.ageInput,
+      els.schoolInput,
+      els.gradeInput,
+      els.classInput,
+      els.numberInput,
+      els.gradeScoreInput,
+      els.recordInput,
+      els.sincerityInput,
+      els.featureInput,
+      els.photoScale,
+      els.photoX,
+      els.photoY,
+      els.fontFamily,
+      els.fontSize,
+      els.nameSize,
+      els.fontColor,
+      els.bgColor
+    ].forEach((el) => el.addEventListener("input", updateCard));
+
+    els.photoInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      readImage(file);
+    });
+
+    els.photoImage.addEventListener("mousedown", (e) => {
+      photoState.dragging = true;
+      els.photoImage.classList.add("dragging");
+      photoState.startX = e.clientX;
+      photoState.startY = e.clientY;
+      photoState.initialX = Number(els.photoX.value);
+      photoState.initialY = Number(els.photoY.value);
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!photoState.dragging) return;
+
+      const dx = e.clientX - photoState.startX;
+      const dy = e.clientY - photoState.startY;
+
+      let nextX = photoState.initialX + dx;
+      let nextY = photoState.initialY + dy;
+
+      nextX = Math.max(-200, Math.min(200, nextX));
+      nextY = Math.max(-200, Math.min(200, nextY));
+
+      els.photoX.value = nextX;
+      els.photoY.value = nextY;
+      updateCard();
+    });
+
+    window.addEventListener("mouseup", () => {
+      photoState.dragging = false;
+      els.photoImage.classList.remove("dragging");
+    });
+
+    els.downloadBtn.addEventListener("click", async () => {
+      const canvas = await html2canvas(els.captureCard, {
+        backgroundColor: null,
+        scale: 2
+      });
+
+      const link = document.createElement("a");
+      link.download = "student-card.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    });
+
+    updateCard();
+  </script>
+</body>
+</html>
